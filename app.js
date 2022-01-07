@@ -1,6 +1,8 @@
 var util = require('utils/util.js');
+import _gsTracker from './utils/gs_v3.8.5.15.js';
 var api = require('config/api.js');
-App({
+_gsTracker.setServiceId("GWD-006017");
+const options = {
     data: {
         deviceInfo: {}
     },
@@ -57,4 +59,5 @@ App({
         token: '',
     }
 
-})
+}
+App(_gsTracker.getGridsumApp(options))

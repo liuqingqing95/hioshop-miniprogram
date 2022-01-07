@@ -1,7 +1,7 @@
 var util = require('../../utils/util.js');
 var api = require('../../config/api.js');
-
-Page({
+import _gsTracker from './utils/gs_v3.8.5.15.js';
+const options = {
     data: {
         navList: [],
         categoryList: [],
@@ -90,6 +90,7 @@ Page({
         this.getChannelShowInfo();
         let id = this.data.nowId;
         let nowId = wx.getStorageSync('categoryId');
+        _gsTracker.setPageTitle(id);
         if(id == 0 && nowId === 0){
             return false
         }
@@ -172,4 +173,5 @@ Page({
             that.getCurrentList(nowId);
         }
     }
-})
+}
+Page(_gsTracker.getGridsumPage(options))

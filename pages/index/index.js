@@ -1,11 +1,11 @@
 const util = require('../../utils/util.js');
 const api = require('../../config/api.js');
 const user = require('../../services/user.js');
+import _gsTracker from '../../utils/gs_v3.8.5.15.js';
 
 //获取应用实例
 const app = getApp()
-
-Page({
+const options = {
     data: {
         floorGoods: [],
         openAttr: false,
@@ -137,4 +137,5 @@ Page({
         wx.hideNavigationBarLoading() //完成停止加载
         wx.stopPullDownRefresh() //停止下拉刷新
     },
-})
+}
+Page(_gsTracker.getGridsumPage(options))
