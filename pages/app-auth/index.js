@@ -1,6 +1,7 @@
-const util = require('../../utils/util.js');
 const api = require('../../config/api.js');
 const user = require('../../services/user.js');
+const util = require('../../utils/util.js');
+
 //获取应用实例
 const app = getApp()
 
@@ -44,28 +45,41 @@ Page({
             success: (res) => {
                 code = res.code;
             },
-        });
-        // 获取用户信息
-        wx.getUserProfile({
-            lang: 'zh_CN',
-            desc: '用户登录',
-            success: (res) => {
-                let loginParams = {
-                    code: code,
-                    encryptedData: res.encryptedData,
-                    iv: res.iv,
-                    rawData: res.rawData,
-                    signature: res.signature
-                };
-                console.log(loginParams);
-                that.postLogin(loginParams);
-            },
-            // 失败回调
-            fail: () => {
+             // 失败回调
+             fail: (e) => {
                 // 弹出错误
-                App.showError('已拒绝小程序获取信息');
+                App.showError(e);
             }
         });
+        wx.getSystemInfo({
+            success: (res) => {
+                if (util.compareVersion(res.SDKVersion, '2.10.4')) {
+                    // 获取用户信息
+                    wx.getUserProfile({
+                        lang: 'zh_CN',
+                        desc: '用户登录',
+                        success: (res) => {
+                            let loginParams = {
+                                code: code,
+                                encryptedData: res.encryptedData,
+                                iv: res.iv,
+                                rawData: res.rawData,
+                                signature: res.signature
+                            };
+                console.log(loginParams);
+                            that.postLogin(loginParams);
+                        },
+                        // 失败回调
+                        fail: () => {
+                            // 弹出错误
+                            App.showError('已拒绝小程序获取信息');
+                        }
+                    });
+                }
+            }
+        })
+   
+        
     },
     postLogin(info) {
         util.request(api.AuthLoginByWeixin, {
