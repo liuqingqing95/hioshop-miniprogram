@@ -97,6 +97,7 @@ const options = {
         this.getChannelShowInfo();
     },
     onShow: function () {
+        _gsTracker.setPageTitle('首页');
         this.getIndexData();
         var that = this;
         let userInfo = wx.getStorageSync('userInfo');

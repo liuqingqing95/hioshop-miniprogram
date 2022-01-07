@@ -1,12 +1,13 @@
 var util = require('../../../utils/util.js');
 var api = require('../../../config/api.js');
 var user = require('../../../services/user.js');
+import _gsTracker from '../../utils/gs_v3.8.5.15.js';
 
 // TODO 订单显示数量在图标上
 
 const app = getApp()
 
-Page({
+const options = {
     data: {
         userInfo: {},
         hasUserInfo: false,
@@ -60,6 +61,7 @@ Page({
     onLoad: function(options) {
     },
     onShow: function() {
+        _gsTracker.setPageTitle('我的');
         let userInfo = wx.getStorageSync('userInfo');
         if(userInfo == ''){
             this.setData({
@@ -95,4 +97,5 @@ Page({
             }
         });
     },
-})
+}
+Page(_gsTracker.getGridsumPage(options))

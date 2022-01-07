@@ -1,6 +1,6 @@
 var util = require('../../utils/util.js');
 var api = require('../../config/api.js');
-import _gsTracker from './utils/gs_v3.8.5.15.js';
+import _gsTracker from '../../utils/gs_v3.8.5.15.js';
 const options = {
     data: {
         navList: [],
@@ -87,10 +87,11 @@ const options = {
         });
     },
     onShow: function() {
+
         this.getChannelShowInfo();
         let id = this.data.nowId;
         let nowId = wx.getStorageSync('categoryId');
-        _gsTracker.setPageTitle(id);
+        _gsTracker.setPageTitle('分类');
         if(id == 0 && nowId === 0){
             return false
         }
