@@ -1,6 +1,6 @@
 var util = require('../../utils/util.js');
 var api = require('../../config/api.js');
-import _gsTracker from '../../utils/gs_v3.8.5.15.js';
+// import _gsTracker from '../../utils/gs_v3.8.5.15.js';
 const app = getApp()
 const options= {
     data: {
@@ -26,7 +26,7 @@ const options= {
         // 页面渲染完成
     },
     onShow: function() {
-        _gsTracker.setPageTitle('购物车');
+        // _gsTracker.setPageTitle('购物车');
         // 页面显示
         this.getCartList();
         this.getCartNum();
@@ -362,4 +362,4 @@ const options= {
     }
 }
 
-Page(_gsTracker.getGridsumPage(options))
+Page(options)

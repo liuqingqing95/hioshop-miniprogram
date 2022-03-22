@@ -1,7 +1,7 @@
 const util = require('../../utils/util.js');
 const api = require('../../config/api.js');
 const user = require('../../services/user.js');
-import _gsTracker from '../../utils/gs_v3.8.5.15.js';
+// import _gsTracker from '../../utils/gs_v3.8.5.15.js';
 
 //获取应用实例
 const app = getApp()
@@ -97,7 +97,7 @@ const options = {
         this.getChannelShowInfo();
     },
     onShow: function () {
-        _gsTracker.setPageTitle('首页');
+        // _gsTracker.setPageTitle('首页');
         this.getIndexData();
         var that = this;
         let userInfo = wx.getStorageSync('userInfo');
@@ -139,4 +139,4 @@ const options = {
         wx.stopPullDownRefresh() //停止下拉刷新
     },
 }
-Page(_gsTracker.getGridsumPage(options))
+Page(options)

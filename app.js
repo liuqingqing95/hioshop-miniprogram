@@ -1,12 +1,31 @@
 var util = require('utils/util.js');
-import _gsTracker from './utils/gs_v3.8.5.15.js';
+import tracker from './utils/tracker.js';
 var api = require('config/api.js');
-_gsTracker.setServiceId("GWD-006017");
+
+  
 const options = {
     data: {
         deviceInfo: {}
     },
     onLaunch: function() {
+        tracker.init({
+            isDebug: true,
+            autoTrack: { // 删除该设置项即保持默认配置
+              appLaunch: true, // App onLaunch的生命周期监测，如首次打开小程序
+              appShow: true, // App onShow的生命周期监测，如小程序进入前台
+              appError: true, // App onError的事件监测
+              appHide: true, // App onHide的生命周期监测，如小程序进入前台后台、关闭、进程关闭
+              pageLoad: true, // Page onLoad的生命周期监测，不发送数据，使用ABTest则必须开启
+              pageShow: true, // Page onShow的生命周期监测，如小程序内打开页面、从后台进入前台打开页时触发等
+              pageHide: true, // Page onHide的生命周期监测，如小程序页面进入后台时触发
+              pageShare: true, // Page onShareAppMessage的事件监测，如点击右上角分享时触发
+              click: true // WXML中已绑定的点击事件监测，如bindtap、bindlongtap
+            },
+            profileId: "1XTYzXxzczUjGi1jbMVhRfJqcqCQD0ve", // profileID
+            appName: "miniProgram-seaStore", // 应用名
+            serviceUrls: [' https://eap-uat.gridsumdissector.com/receiver'] 
+            // serviceUrls: ['https://wd5-recv.gridsumdissector.com/receiver'] // 数据接收地址
+          })
         this.data.deviceInfo = wx.getSystemInfoSync();
         console.log(this.data.deviceInfo);
         // 展示本地存储能力
@@ -16,6 +35,7 @@ const options = {
         // 登录
         wx.login({
             success: res => {
+                console.log(res)
                 // 发送 res.code 到后台换取 openId, sessionKey, unionId
             }
         })
@@ -60,4 +80,4 @@ const options = {
     }
 
 }
-App(_gsTracker.getGridsumApp(options))
+App(options)
