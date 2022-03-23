@@ -33,7 +33,8 @@
         <view class='r'>
             <view bindtap="shareTo" class='share'>
                 <image class='icon' src='/images/icon/share.png'></image>
-                <view class='text'>分享</view>
+                <button class='text' open-type="share">分享</button> 
+                <!-- <view class='text'>分享</view> -->
             </view>
         </view>
     </view>
