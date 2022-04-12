@@ -75,16 +75,17 @@ tracker.init({
       pageLoad: true, // Page onLoad的生命周期监测，不发送数据，使用ABTest则必须开启
       pageShow: true, // Page onShow的生命周期监测，如小程序内打开页面、从后台进入前台打开页时触发等
       pageHide: true, // Page onHide的生命周期监测，如小程序页面进入后台时触发
-      pageShare: true, // Page onShareAppMessage的事件监测，如点击右上角分享时触发
+      pageShare: false, // Page onShareAppMessage的事件监测，如点击右上角分享时触发
       click: true // WXML中已绑定的点击事件监测，如bindtap、bindlongtap
     },
     profileId: "1XTYzXxzczUjGi1jbMVhRfJqcqCQD0ve", // profileID
     appName: "miniProgram-seaStore", // 应用名
-    serviceUrls: [' https://eap-uat.gridsumdissector.com/receiver'] 
+    serviceUrls: ['https://eap-uat.gridsumdissector.com/receiver'] 
     // serviceUrls: ['https://wd5-recv.gridsumdissector.com/receiver'] // 数据接收地址
   })
 
 // tracker.login('oQiQD5c1bdTV9vNeCJywHxjGzXXI')
 // tracker.setUser({openid: 'oQiQD5c1bdTV9vNeCJywHxjGzXXI'})
-// tracker.setOpenid('oQiQD5c1bdTV9vNeCJywHxjGzXXI');
+tracker.setOpenId('oQiQD5c1bdTV9vNeCJywHxjGzXXI');
+tracker.setUnionID('sss')
 App(options)

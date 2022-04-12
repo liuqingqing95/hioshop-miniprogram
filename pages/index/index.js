@@ -1,7 +1,7 @@
 const util = require('../../utils/util.js');
 const api = require('../../config/api.js');
 const user = require('../../services/user.js');
-// import _gsTracker from '../../utils/gs_v3.8.5.15.js';
+import _gsTracker from '../../utils/tracker.js';
 
 //获取应用实例
 const app = getApp()
@@ -48,19 +48,40 @@ const options = {
         let id = e.currentTarget.dataset.cateid;
         wx.setStorageSync('categoryId', id);
         wx.switchTab({
-            url: '/pages/category/index',
+            url: '/pages/category/index?utm_campaign=ff&utm_content=3&gsadid=34dfs',
         })
     },
     handleTap: function (event) {
         //阻止冒泡 
     },
-    onShareAppMessage: function () {
-        let info = wx.getStorageSync('userInfo');
-        return {
-            title: '海风小店',
-            desc: '开源微信小程序商城',
-            path: '/pages/index/index?id=' + info.id
-        }
+    // onShareAppMessage: function () {
+    //     let info = wx.getStorageSync('userInfo');
+    //     return {
+    //         title: '海风小店',
+    //         desc: '开源微信小程序商城',
+    //         path: '/pages/index/index?id=' + info.id
+    //     }
+    // },
+    onReady: function() {
+        // _gsTracker.searchRequest({
+        //     "key_word": "奔驰",           //关键词
+        //     "key_word_classify": "汽车",   //关键词分类标签
+        //     "key_word_type":"搜索",       //关键词类型
+        //     "result_number": 20         //搜索结果数量
+        // }, {
+        //     "product_prop1": 1, // 自定义字段，key/value都可自定义
+        //     "product_prop2": 2,
+        // })
+        // tracker.searchRequestClick({
+        //     "key_word": "奔驰",                //关键词
+        //     "key_word_classify": "汽车",       //关键词分类标签
+        //     "key_word_type":"搜索",           //关键词类型
+        //     "position_number": 2,            //位置序号
+        //     "product_id":"123EWR112",   //商品ID
+        //     "product_name":"奔驰S600"    //商品名称
+        // },{
+        //     "product_prop1": 1, // 自定义字段，key/value都可自定义
+        // })
     },
     toDetailsTap: function () {
         wx.navigateTo({
@@ -93,10 +114,44 @@ const options = {
             }
         });
     },
-    onLoad: function (options) {
+    onReady: function (options) {
         this.getChannelShowInfo();
     },
+//     onShareTimeline: function () {
+
+//         return {
+    
+//           title: '分享的标题',
+    
+//           query: {
+//             key: 'value'
+//             // key: 'value' //要携带的参数
+    
+//           },//分享图,默认小程序的logo
+    
+//         }
+    
+//    },
+    
+    
+    test: function () {
+        // _gsTracker.track(433, { key1: "value1", key2: "value2"})
+        // _gsTracker.trackOrder({
+        //     order_id: '4', // 订单ID，必填
+        //     product_count: '1', // 商品总数量
+        //     order_amount: 123.4, // 订单金额，必填
+        //     pay_amount: '123.4', // 实际支付金额
+        //     pay_method: "wechat", // 支付方式
+        //   });
+        var a = [{"key":"1215","value":"广告预约打开小程序"},{"key":"1216","value":"视频号订单中心打开小程序"}]
+        a.forEach(item => {
+            _gsTracker.setItem(item.key, "item_scene", {
+                ['scene_value']: item.value
+            });
+        })
+    },
     onShow: function () {
+
         // _gsTracker.setPageTitle('首页');
         this.getIndexData();
         var that = this;

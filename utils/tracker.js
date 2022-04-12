@@ -152,6 +152,51 @@ var requestCurrentTime = function () {
     return format(new Date());
 };
 
+function dataType(data, type, attr, preSet, require) {
+    if (preSet === void 0) { preSet = true; }
+    if (require === void 0) { require = false; }
+    if (!data) {
+        if (require) {
+            if (preSet) {
+                console.log("预置属性" + 's_' + attr + "不能为空");
+            }
+            else {
+                console.log("属性" + attr + "不能为空");
+            }
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+    var flag = false;
+    var warning = "";
+    switch (type) {
+        case 'number':
+            flag = typeof (data) === "number";
+            warning = "数字类型";
+            break;
+        case 'string':
+            flag = typeof (data) === "string";
+            warning = "字符串类型";
+            break;
+        case 'boolean':
+            flag = typeof (data) === "boolean";
+            warning = "布尔类型";
+            break;
+    }
+    if (!flag) {
+        if (preSet) {
+            console.log("预置属性" + 's_' + attr + "只支持" + warning);
+        }
+        else {
+            console.log("属性" + attr + "只支持" + warning);
+        }
+        return false;
+    }
+    return true;
+}
+
 function getCurrentPath() {
     var pages = getCurrentPages();
     return pages[pages.length - 1].route;
@@ -170,6 +215,7 @@ var map = {
     appError: "onError",
     appHide: "onHide",
     pageLoad: "onLoad",
+    pageReady: "onReady",
     pageShow: "onShow",
     pageHide: "onHide",
     pageShare: "onShareAppMessage",
@@ -223,8 +269,10 @@ var autoTrackStrategy = {
             for (var key in query) {
                 if (key in utmKey) {
                     isUtmExist = true;
-                    utmData["latest_" + key] = query[key];
-                    tempUtmData["current_" + key] = query[key];
+                    if (dataType(query[key], "string", key, false)) {
+                        utmData["latest_" + key] = query[key];
+                        tempUtmData["current_" + key] = query[key];
+                    }
                 }
             }
             isUtmExist && tracker$2.store.setData("_gsutm", utmData);
@@ -285,8 +333,10 @@ var autoTrackStrategy = {
             for (var key in query) {
                 if (key in utmKey) {
                     isUtmExist = true;
-                    utmData["latest_" + key] = query[key];
-                    tempUtmData["current_" + key] = query[key];
+                    if (dataType(query[key], "string", key, false)) {
+                        utmData["latest_" + key] = query[key];
+                        tempUtmData["current_" + key] = query[key];
+                    }
                 }
             }
             if (!tempStoredData && isUtmExist)
@@ -340,6 +390,7 @@ var autoTrackStrategy = {
     pageLoad: function (that, orginMethodOutput, urlParams) {
         if (!tracker$2)
             return;
+        tracker$2.onLoadTime = new Date().getTime();
         var curPath = getCurrentPath();
         urlParams && tracker$2._appendAllUrlParams(curPath, urlParams);
         if (urlParams && urlParams.s_abtest_testid && urlParams.s_abtest_verid) {
@@ -361,6 +412,14 @@ var autoTrackStrategy = {
             });
         }
         // startABTest(curPath);
+    },
+    pageReady: function (that) {
+        if (!tracker$2)
+            return;
+        if (tracker$2.onLoadTime) {
+            tracker$2.pageLoadDuration = new Date().getTime() - tracker$2.onLoadTime;
+            tracker$2.onLoadTime = undefined;
+        }
     },
     pageShow: function (that) {
         if (tracker$2) {
@@ -384,11 +443,21 @@ var autoTrackStrategy = {
     },
     pageHide: function (that) {
         if (tracker$2) {
+            // tracker.trackHeartBeat()
+            var obj = {};
+            if (tracker$2.pageLoadDuration) {
+                obj["pageLoadDuration"] = tracker$2.pageLoadDuration / 1000.0;
+            }
+            if (tracker$2.customPageLoadDuration) {
+                obj["customPageLoadDuration"] = tracker$2.customPageLoadDuration / 1000.0;
+            }
+            tracker$2.pageLoadDuration = undefined;
+            tracker$2.customPageLoadDuration = undefined;
             tracker$2.sender.send({
                 event: "s_page_hide",
                 event_type: "track",
                 event_time: requestCurrentTime(),
-            });
+            }, {}, obj);
         }
     },
     pageShare: function (that, shareData) {
@@ -406,6 +475,9 @@ var autoTrackStrategy = {
             tracker$2._addUrlParams(pathWithoutParam, paramCache);
         }
         var spreadId = paramCache.spreadId;
+        if (!dataType(spreadId, "string", 'spread_id') || !dataType(title, "string", 'share_title')) {
+            return;
+        }
         var spreadLevel = Number(paramCache.spreadLevel) + 1;
         tracker$2.sender.send({
             event: "s_page_share",
@@ -434,9 +506,9 @@ var autoTrackStrategy = {
                 });
             }
         }
-    }
+    },
 };
-function proxy(option, autoTrackName) {
+function proxy(option, autoTrackName, trackerConfig) {
     var method = map[autoTrackName];
     var oldMethod = option[method];
     var autoTrack = autoTrackStrategy[autoTrackName];
@@ -615,7 +687,7 @@ var initProgram = function (t) {
     tracker$2 = t;
     var config = t.config;
     var appApis = [];
-    var pageApis = ["pageLoad"];
+    var pageApis = ["pageLoad", "pageReady"];
     var componentApis = ["componentAttached"];
     for (var key in config.autoTrack) {
         var value = config.autoTrack[key];
@@ -1006,18 +1078,21 @@ var BackupSender = /** @class */ (function () {
                     continue;
                 s_properties[formatKey(key, true)] = customData[key];
             }
+            var destData = {};
+            destData["s_profile_id"] = that.tracker.config.profileId;
+            destData["s_client_user_id"] = that.tracker.store.getData("client_user_id");
+            destData["s_unique_user_id"] = data.unique_user_id || that.tracker.store.getData("unique_user_id");
+            destData["s_event_time"] = data.event_time || format(new Date());
+            destData["s_event_type"] = data.event_type;
+            destData["s_event_name"] = data.event;
+            if (data.item_id)
+                destData["s_item_id"] = data.item_id;
+            if (data.item_type)
+                destData["s_item_type"] = data.item_type;
+            destData["s_properties"] = s_properties;
             var url = serviceUrl +
                 "?data=" +
-                encodeURIComponent(base64Encode(JSON.stringify({
-                    s_profile_id: that.tracker.config.profileId,
-                    s_client_user_id: that.tracker.store.getData("client_user_id"),
-                    s_unique_user_id: data.unique_user_id || that.tracker.store.getData("unique_user_id"),
-                    s_event_time: data.event_time,
-                    s_event_type: data.event_type,
-                    s_event_name: data.event,
-                    // s_track_id: data.track_id,
-                    s_properties: s_properties,
-                })));
+                encodeURIComponent(base64Encode(JSON.stringify(destData)));
             wx.request({
                 url: url,
                 method: "GET",
@@ -1073,16 +1148,19 @@ var BackupSender = /** @class */ (function () {
                     continue;
                 tableData[formatKey(key, true)] = customData[key];
             }
-            console.log({
-                s_profile_id: that.tracker.config.profileId,
-                s_client_user_id: that.tracker.store.getData("client_user_id"),
-                s_unique_user_id: data.unique_user_id || that.tracker.store.getData("unique_user_id"),
-                s_event_time: data.event_time,
-                s_event_type: data.event_type,
-                s_event_name: data.event,
-                // s_track_id: data.track_id,
-                s_properties: tableData
-            });
+            var destData = {};
+            destData["s_profile_id"] = that.tracker.config.profileId;
+            destData["s_client_user_id"] = that.tracker.store.getData("client_user_id");
+            destData["s_unique_user_id"] = data.unique_user_id || that.tracker.store.getData("unique_user_id");
+            destData["s_event_time"] = data.event_time || format(new Date());
+            destData["s_event_type"] = data.event_type;
+            destData["s_event_name"] = data.event;
+            if (data.item_id)
+                destData["s_item_id"] = data.item_id;
+            if (data.item_type)
+                destData["s_item_type"] = data.item_type;
+            destData["s_properties"] = tableData;
+            console.log(destData);
             console.groupEnd();
         }
     };
@@ -1369,11 +1447,15 @@ var Tracker = /** @class */ (function () {
         Object.assign(this.store.memoizedData, data);
     };
     Tracker.prototype.setOpenId = function (openId) {
-        this.store.setData("open_id", openId);
-        this.sender.queueSend();
+        if (dataType(openId, "string", 'open_id', true, true)) {
+            this.store.setData("open_id", openId);
+            this.sender.queueSend();
+        }
     };
     Tracker.prototype.setUnionID = function (unionID) {
-        this.store.setData("unionID", unionID);
+        if (dataType(unionID, "string", 'union_id', true, true)) {
+            this.store.setData("unionID", unionID);
+        }
     };
     Tracker.prototype.login = function (id) {
         var curId = this.store.getData("unique_user_id");
@@ -1431,6 +1513,10 @@ var Tracker = /** @class */ (function () {
         }, data);
     };
     Tracker.prototype.setItem = function (itemId, itemType, data) {
+        if (!dataType(itemId, "string", "item_id", true, true) ||
+            dataType(itemType, "string", "item_type", true, true)) {
+            return;
+        }
         this.sender.send({
             event: "s_item_set",
             event_type: "item",
@@ -1491,6 +1577,9 @@ var Tracker = /** @class */ (function () {
         this.track("s_mouse_click", {}, mcData);
     };
     Tracker.prototype.track = function (event, data, innerData) {
+        if (!dataType(event, "string", "event_name", true, true)) {
+            return;
+        }
         if (!event.startsWith("s_")) {
             event = "c_" + event;
         }
@@ -1500,42 +1589,146 @@ var Tracker = /** @class */ (function () {
             event_time: requestCurrentTime(),
         }, data, innerData);
     };
-    Tracker.prototype.trackOrder = function (data, customData) {
+    /**
+     * 发送hb数据
+     * @return {void}
+     */
+    Tracker.prototype.trackHeartBeat = function () {
+        try {
+            var that = this;
+            var obj = {};
+            obj["pageLoadDuration"] = that.pageLoadDuration ? that.pageLoadDuration / 1000.0 : "";
+            obj["customPageLoadDuration"] = that.customPageLoadDuration ? that.customPageLoadDuration / 1000.0 : "";
+            this.pageLoadDuration = undefined;
+            this.customPageLoadDuration = undefined;
+            that.sender.send({
+                event: 's_heart_beat',
+                event_type: "track",
+                event_time: requestCurrentTime(),
+            }, {}, obj);
+        }
+        catch (e) { }
+    };
+    /**
+     * 自定义页面加载时长
+     * @param {number} customPageLoadDuration 页面加载时长
+     */
+    Tracker.prototype.setPageLoadDuration = function (customPageLoadDuration) {
+        this.customPageLoadDuration = customPageLoadDuration;
+    };
+    Tracker.prototype.searchRequest = function (data, customData) {
         var obj = {};
-        if (typeof data.order_id !== "number" && !data.order_id) {
-            console.warn("order_id is must.");
+        if (dataType(data.key_word, "string", "key_word", true, true)) {
+            obj.key_word = data.key_word;
+        }
+        else {
             return;
         }
-        obj.order_id = data.order_id;
-        obj.product_count = data.product_count;
-        obj.order_amount = data.order_amount;
-        obj.pay_amount = data.pay_amount;
-        obj.pay_method = data.pay_method;
-        obj.is_coupon_used = data.is_coupon_used;
-        obj.coupon_name = data.coupon_name;
-        obj.coupon_type = data.coupon_type;
-        obj.coupon_amount = data.coupon_amount;
+        if (dataType(data.key_word_classify, "string", "key_word_classify")) {
+            obj.key_word_classify = data.key_word_classify;
+        }
+        if (dataType(data.key_word_type, "string", "key_word_type")) {
+            obj.key_word = data.key_word_type;
+        }
+        if (dataType(data.result_number, "number", "result_number")) {
+            obj.result_number = data.result_number;
+        }
+        this.track("s_search_request", customData || {}, obj);
+    };
+    Tracker.prototype.searchRequestClick = function (data, customData) {
+        var obj = {};
+        if (dataType(data.key_word, "string", "key_word")) {
+            obj.key_word = data.key_word;
+        }
+        if (dataType(data.key_word_classify, "string", "key_word_classify")) {
+            obj.key_word_classify = data.key_word_classify;
+        }
+        if (dataType(data.key_word_type, "string", "key_word_type")) {
+            obj.key_word = data.key_word_type;
+        }
+        if (dataType(data.position_number, "number", "position_number")) {
+            obj.position_number = data.position_number;
+        }
+        if (dataType(data.product_id, "string", "product_id", true, true)) {
+            obj.product_id = data.product_id;
+        }
+        else {
+            return;
+        }
+        if (dataType(data.product_name, "string", "product_name")) {
+            obj.product_name = data.product_name;
+        }
+        this.track("s_search_request_click", customData || {}, obj);
+    };
+    Tracker.prototype.trackOrder = function (data, customData) {
+        var obj = {};
+        if (dataType(data.order_id, "string", "order_id", true, true)) {
+            obj.order_id = data.order_id;
+        }
+        else {
+            return;
+        }
+        if (dataType(data.product_count, "number", "product_count")) {
+            obj.product_count = data.product_count;
+        }
+        if (dataType(data.order_amount, "number", "order_amount")) {
+            obj.order_amount = data.order_amount;
+        }
+        if (dataType(data.pay_amount, "number", "pay_amount")) {
+            obj.pay_amount = data.pay_amount;
+        }
+        if (dataType(data.pay_method, "string", "pay_method")) {
+            obj.pay_method = data.pay_method;
+        }
+        if (dataType(data.is_coupon_used, "boolean", "is_coupon_used")) {
+            obj.is_coupon_used = data.is_coupon_used;
+        }
+        if (dataType(data.coupon_name, "string", "coupon_name")) {
+            obj.coupon_name = data.coupon_name;
+        }
+        if (dataType(data.coupon_type, "string", "coupon_type")) {
+            obj.coupon_type = data.coupon_type;
+        }
+        if (dataType(data.coupon_amount, "number", "coupon_amount")) {
+            obj.coupon_amount = data.coupon_amount;
+        }
         this.track("s_order", customData || {}, obj);
     };
     Tracker.prototype.trackOrderDetail = function (data, customData) {
         var obj = {};
-        if (typeof data.order_id !== "number" && !data.order_id) {
-            console.warn("order_id is must.");
+        if (dataType(data.order_id, "string", "order_id", true, true)) {
+            obj.order_id = data.order_id;
+        }
+        else {
             return;
         }
-        if (typeof data.product_id !== "number" && !data.product_id) {
-            console.warn("product_id is must.");
+        if (dataType(data.product_id, "string", "product_id", true, true)) {
+            obj.product_id = data.product_id;
+        }
+        else {
             return;
         }
-        obj.order_id = data.order_id;
-        obj.product_id = data.product_id;
-        obj.product_name = data.product_name;
-        obj.product_amount = data.product_amount;
-        obj.product_count = data.product_count;
-        obj.product_price = data.product_price;
-        obj.product_brand = data.product_brand;
-        obj.product_first_cate = data.product_first_cate;
-        obj.product_second_cate = data.product_second_cate;
+        if (dataType(data.product_name, "string", "product_name")) {
+            obj.product_name = data.product_name;
+        }
+        if (dataType(data.product_amount, "number", "product_amount")) {
+            obj.product_amount = data.product_amount;
+        }
+        if (dataType(data.product_count, "number", "product_count")) {
+            obj.product_count = data.product_count;
+        }
+        if (dataType(data.product_price, "number", "product_price")) {
+            obj.product_price = data.product_price;
+        }
+        if (dataType(data.product_brand, "string", "product_brand")) {
+            obj.product_brand = data.product_brand;
+        }
+        if (dataType(data.product_first_cate, "string", "product_first_cate")) {
+            obj.product_first_cate = data.product_first_cate;
+        }
+        if (dataType(data.product_second_cate, "string", "product_second_cate")) {
+            obj.product_second_cate = data.product_second_cate;
+        }
         this.track("s_order_detail", customData || {}, obj);
     };
     Tracker.prototype.getABTest = function (url) {
@@ -1612,6 +1805,15 @@ var Tracker = /** @class */ (function () {
     ], Tracker.prototype, "track", null);
     __decorate([
         execWhenInited
+    ], Tracker.prototype, "setPageLoadDuration", null);
+    __decorate([
+        execWhenInited
+    ], Tracker.prototype, "searchRequest", null);
+    __decorate([
+        execWhenInited
+    ], Tracker.prototype, "searchRequestClick", null);
+    __decorate([
+        execWhenInited
     ], Tracker.prototype, "trackOrder", null);
     __decorate([
         execWhenInited
@@ -1621,3 +1823,4 @@ var Tracker = /** @class */ (function () {
 var tracker = new Tracker();
 
 export { tracker as default };
+//# sourceMappingURL=tracker.js.map
